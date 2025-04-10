@@ -20,23 +20,33 @@ from pulp.chips.carfield.soc import Soc
 
 class Carfield_board(st.Component):
 
-    def __init__(self, parent, name, parser, options):
-
+    def __init__(self, parent, name, parser, options, soc_config_file='pulp/chips/carfield/soc.json'):
         super(Carfield_board, self).__init__(parent, name, options=options)
 
-        parser.add_argument("--isa", dest="isa", type=str, default="rv64imafdc",
-            help="RISCV-V ISA string (default: %(default)s)")
+        #
+        # Properties
+        #
 
+        #TODO: check below
         parser.add_argument("--arg", dest="args", action="append",
             help="Specify application argument (passed to main)")
+        
+        soc_config_file = self.add_property('soc_config_file', soc_config_file)
 
-        [args, otherArgs] = parser.parse_known_args()
-        debug_binaries = []
-        if args.binary is not None:
-            debug_binaries.append(args.binary)
+        #
+        # Components
+        #
 
-        clock = Clock_domain(self, 'clock', frequency=10000000)
+        # Soc clock domain
+        soc_clock = Clock_domain(self, 'soc_clock_domain', frequency=10000000)
 
-        soc = Soc(self, 'soc', args, debug_binaries)
+        # SoC
+        soc = Soc(self, 'soc', parser, config_file=soc_config_file, chip=self)
 
-        self.bind(clock, 'out', soc, 'clock')
+
+        #
+        # Bindings
+        #
+
+        self.bind(soc_clock, 'out', soc, 'clock')
+        

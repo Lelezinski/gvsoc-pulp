@@ -27,12 +27,34 @@ from elftools.elf.elffile import *
 
 class Soc(st.Component):
 
-    def __init__(self, parent, name, args, debug_binaries):
+    def __init__(self, parent, name, parser, config_file, chip):
         super(Soc, self).__init__(parent, name)
 
-        # -------------------------------- Components -------------------------------- #
+        #
+        # Properties
+        #
+
+        #self.add_properties(self.load_property_file(config_file))
+
+
+        #
+        # Components
+        #
         
+        # Loader
+
+        [args, __] = parser.parse_known_args()
+        
+        binary = None
+        if parser is not None:
+            [args, __] = parser.parse_known_args()
+            binary = args.binary
+
+        loader = utils.loader.loader.ElfLoader(self, 'loader', binary=binary)
+
+        # Standard rv64
         mem = memory.Memory(self, 'mem', size=0x80000000, atomics=True)
+        #FIXME: fix path below
         rom = memory.Memory(self, 'rom', size=0x10000, stim_file=self.get_file_path('pulp/chips/rv64/rom.bin'))
         uart = ns16550.Ns16550(self, 'uart')
         clint = cpu.clint.Clint(self, 'clint')
@@ -56,15 +78,13 @@ class Soc(st.Component):
         self.bind(ico, 'plic', plic, 'input')
         self.bind(uart, 'irq', plic, 'irq1')
 
-        host = iss.Riscv(self, 'host', isa=args.isa, boot_addr=0x1000, timed=True)
-
-        loader = utils.loader.loader.ElfLoader(self, 'loader', binary=args.binary)
+        host = iss.Riscv(self, 'host', isa='rv64imafdc', boot_addr=0x1000, timed=True)
 
         # RISCV bus watchpoint
         tohost_addr = 0
         fromhost_addr = 0
-        if args.binary is not None:
-            with open(args.binary, 'rb') as file:
+        if binary is not None:
+            with open(binary, 'rb') as file:
                 elffile = ELFFile(file)
                 for section in elffile.iter_sections():
                     if isinstance(section, SymbolTableSection):
@@ -75,6 +95,12 @@ class Soc(st.Component):
                                 fromhost_addr = symbol.entry['st_value']
 
         tohost = Bus_watchpoint(self, 'tohost', tohost_addr, fromhost_addr, word_size=64, args=args.args)
+        
+
+        #
+        # Bindings
+        #
+        
         self.bind(host, 'data', tohost, 'input')
         self.bind(tohost, 'output', ico, 'input')
 
