@@ -23,9 +23,6 @@ class Carfield_board(st.Component):
     def __init__(self, parent, name, parser, options, soc_config_file='pulp/chips/carfield/soc.json'):
         super(Carfield_board, self).__init__(parent, name, options=options)
 
-        parser.add_argument("--arg", dest="args", action="append",
-            help="Specify application argument (passed to main)")
-        
         soc_config_file = self.add_property('soc_config_file', soc_config_file)
 
         # Soc clock domain
