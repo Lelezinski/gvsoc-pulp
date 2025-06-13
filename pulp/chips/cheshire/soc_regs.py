@@ -20,7 +20,7 @@ class ControlRegs(gvsoc.systree.Component):
     def __init__(self, parent: gvsoc.systree.Component, name: str, dram_end=0x0, latency: int=0):
         super(ControlRegs, self).__init__(parent, name)
 
-        self.add_sources(['pulp/chips/carfield/control_regs.cpp'])
+        self.add_sources(['pulp/chips/cheshire/soc_regs.cpp'])
 
     def i_INPUT(self) -> gvsoc.systree.SlaveItf:
         return gvsoc.systree.SlaveItf(self, 'input', signature='io')

@@ -21,23 +21,21 @@ import devices.uart.ns16550 as ns16550
 import cpu.clint
 import cpu.plic
 import utils.loader.loader
-import pulp.chips.carfield.cva6.cva6 as cva6
-import pulp.chips.carfield.soc_regs as soc_regs
+import pulp.chips.cheshire.cva6.cva6 as cva6
+import pulp.chips.cheshire.soc_regs as soc_regs
 from pulp.stdout.stdout_v3 import Stdout
 from pulp.idma.idma import IDma
 
 
 class Soc(st.Component):
 
-    def __init__(self, parent, name, parser, config_file, chip):
+    def __init__(self, parent, name, parser, chip):
         super(Soc, self).__init__(parent, name)
 
         #
         # Properties
         #
-        
-        #TODO:self.add_properties(self.load_property_file(config_file))
-
+        #TODO: read properties for the SoC
 
         #
         # Components
@@ -62,8 +60,10 @@ class Soc(st.Component):
         clint = cpu.clint.Clint(self, 'clint')
         plic = cpu.plic.Plic(self, 'plic', ndev=1)
 
-        # CVA6 Host
+        # SoC Registers
         regs = soc_regs.ControlRegs(self, 'control_regs')
+
+        # CVA6 Host
         host = cva6.CVA6(self, 'host', isa="rv64imafdc", boot_addr=0x80000000)
 
         # Standard output
