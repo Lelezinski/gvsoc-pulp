@@ -39,6 +39,7 @@ class Soc(st.Component):
         # Properties
         #
         #TODO: read properties for the SoC
+        BOOTADDR = 0x10000000
 
         #
         # Components
@@ -80,7 +81,7 @@ class Soc(st.Component):
         regs = soc_regs.ControlRegs(self, 'control_regs')
 
         # CVA6 Host
-        host = cva6.CVA6(self, 'host', isa="rv64imafdc", boot_addr=0x80000000)
+        host = cva6.CVA6(self, 'host', isa="rv64imafdc", boot_addr=BOOTADDR)
 
         # System DMA
         idma = IDma(self, 'idma')
@@ -103,9 +104,16 @@ class Soc(st.Component):
         narrow_axi.o_MAP(spm.i_INPUT(), name='spm', base=0x10000000, size=0x10000000, latency=5)
         narrow_axi.o_MAP(dram.i_INPUT(), name='dram', base=0x80000000, size=0x80000000, latency=5)
         
+        # TODO: LLC bindings quickfix
+        if BOOTADDR == 0x10000000:
+            # LLC in SPM mode, bypass cache
+            self.bind(host, 'fetch', narrow_axi, 'input')
+        else:
+            # LLC in iCache mode, use cache
+            self.bind(host, 'fetch', llc, 'input')
+            
         # Other binds
         self.bind(host, 'data', narrow_axi, 'input')
-        #self.bind(host, 'fetch', narrow_axi, 'input')
         self.bind(loader, 'out', narrow_axi, 'input')
         self.bind(loader, 'start', host, 'fetchen')
         self.bind(host, 'time', clint, 'time')
@@ -114,7 +122,6 @@ class Soc(st.Component):
         self.bind(uart, 'irq', plic, 'irq1')
         self.bind(plic, 's_irq_0', host, 'sei')
         self.bind(plic, 'm_irq_0', host, 'mei')
-        self.bind(host, 'fetch', llc, 'input')
         self.bind(host, 'flush_cache_req', llc, 'flush')
         self.bind(llc, 'flush_ack', host, 'flush_cache_ack')
         self.bind(llc, 'refill', narrow_axi, 'input')
