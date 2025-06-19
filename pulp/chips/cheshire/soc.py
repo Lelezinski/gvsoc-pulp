@@ -28,7 +28,7 @@ from pulp.idma.idma import IDma
 import cache.cache as cache
 from pulp.icache_ctrl.icache_ctrl_v2 import Icache_ctrl
 import pulp.gpio.gpio_v3 as gpio_module
-
+from elftools.elf.elffile import ELFFile
 
 class Soc(st.Component):
 
@@ -39,7 +39,6 @@ class Soc(st.Component):
         # Properties
         #
         #TODO: read properties for the SoC
-        BOOTADDR = 0x10000000
 
         #
         # Components
@@ -54,6 +53,13 @@ class Soc(st.Component):
             binary = args.binary
 
         loader = utils.loader.loader.ElfLoader(self, 'loader', binary=binary)
+        
+        entry = 0
+        if binary is not None:
+            # Extract entry point when simulating
+            with open(args.binary, 'rb') as file_desc:
+                elffile = ELFFile(file_desc)
+                entry = elffile['e_entry']
 
         # Debug ROM
         debug_rom = memory.Memory(self, 'debug_rom', size=0x00040000, 
@@ -81,7 +87,7 @@ class Soc(st.Component):
         regs = soc_regs.ControlRegs(self, 'control_regs')
 
         # CVA6 Host
-        host = cva6.CVA6(self, 'host', isa="rv64imafdc", boot_addr=BOOTADDR)
+        host = cva6.CVA6(self, 'host', isa="rv64imafdc", boot_addr=entry)
 
         # System DMA
         idma = IDma(self, 'idma')
@@ -105,7 +111,7 @@ class Soc(st.Component):
         narrow_axi.o_MAP(dram.i_INPUT(), name='dram', base=0x80000000, size=0x80000000, latency=5)
         
         # TODO: LLC bindings quickfix
-        if BOOTADDR == 0x10000000:
+        if entry == 0x10000000:
             # LLC in SPM mode, bypass cache
             self.bind(host, 'fetch', narrow_axi, 'input')
         else:
