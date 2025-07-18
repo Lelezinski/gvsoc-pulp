@@ -74,11 +74,13 @@ class Soc(st.Component):
         # TODO: change LLC parameters
         llc = cache.Cache(self, 'llc', enabled=True, nb_sets_bits=5, nb_ways_bits=2, line_size_bits=6)
         llc_ctrl = Icache_ctrl(self, 'llc_ctrl')
+        fetch_router = router.Router(self, 'fetch_router', bandwidth=8)
         
         # Peripherals
         uart = ns16550.Ns16550(self, 'uart', offset_shift=2)
         clint = cpu.clint.Clint(self, 'clint')
         plic = cpu.plic.Plic(self, 'plic', ndev=1)
+        
 
         # GPIO
         # TODO: change numbers and connect this
@@ -118,14 +120,12 @@ class Soc(st.Component):
         narrow_axi.o_MAP(spm.i_INPUT(), name='spm', base=0x10000000, size=0x10000000, latency=5)
         narrow_axi.o_MAP(dram.i_INPUT(), name='dram', base=0x80000000, size=0x80000000, latency=5)
         
-        # TODO: LLC bindings quickfix
-        if entry == 0x10000000:
-            # LLC in SPM mode, bypass cache
-            self.bind(host, 'fetch', narrow_axi, 'input')
-        else:
-            # LLC in iCache mode, use cache
-            self.bind(host, 'fetch', llc, 'input')
-            
+        # Bind host fetch to router FIXME: cache seems to be always enabled
+        self.bind(host, 'fetch', llc, 'input')
+        # Fetch router to distinguish between SPM and Cache mode for LLC
+        fetch_router.o_MAP(spm.i_INPUT(), name='spm', base=0x10000000, size=0x10000000)
+        fetch_router.o_MAP(llc.i_INPUT(), name='llc', base=0x80000000, size=0x80000000)
+        
         # Other binds
         idma.o_AXI(narrow_axi.i_INPUT())
         self.bind(host, 'data', narrow_axi, 'input')
