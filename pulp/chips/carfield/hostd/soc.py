@@ -30,6 +30,7 @@ from pulp.icache_ctrl.icache_ctrl_v2 import Icache_ctrl
 import pulp.gpio.gpio_v3 as gpio_module
 from elftools.elf.elffile import ELFFile
 import gdbserver.gdbserver as GdbServer
+import pulp.chips.carfield.hostd.carfield_pcrs as carfield_pcrs
 
 class Soc(st.Component):
 
@@ -88,10 +89,16 @@ class Soc(st.Component):
         # gpio = gpio_module.Gpio(self, 'gpio', nb_gpio=65, soc_event=33)
 
         # Cheshire SoC control registers
-        chs_regs = soc_regs.ControlRegs(self, 'control_regs')
+        chs_regs = soc_regs.ControlRegs(self, 'chs_regs')
+        
+        # Carfield PCRs (Platform Control Registers)
+        car_regs = carfield_pcrs.PlatformControlRegs(self, 'car_regs')
 
         # CVA6 Host
+        # TODO: dual core
         host = cva6.CVA6(self, 'host', isa="rv64imafdc", boot_addr=entry)
+
+        # TODO: mailbox
 
         # System DMA
         idma = CheshireDma(self, 'idma', 
@@ -114,13 +121,14 @@ class Soc(st.Component):
         narrow_axi.o_MAP(debug_rom.i_INPUT(), name='debug_rom', base=0x00000000, size=0x00040000)
         narrow_axi.o_MAP(idma.i_INPUT(), name='idma', base=0x01000000, size=0x00010000)
         narrow_axi.o_MAP(clint.i_INPUT(), name='clint', base=0x02040000, size=0x00400000)
-        narrow_axi.o_MAP(chs_regs.i_INPUT(), name='control_regs', base=0x03000000, size=0x00001000)
+        narrow_axi.o_MAP(chs_regs.i_INPUT(), name='chs_regs', base=0x03000000, size=0x00001000)
+        narrow_axi.o_MAP(car_regs.i_INPUT(), name='car_regs', base=0x2001_0000, size=0x0000_1000)
         narrow_axi.o_MAP(llc_ctrl.i_INPUT(), name='llc_ctrl', base=0x03001000, size=0x00001000)
         narrow_axi.o_MAP(uart.i_INPUT(), name='uart', base=0x03002000, size=0x00001000)
         narrow_axi.o_MAP(plic.i_INPUT(), name='plic', base=0x04000000, size=0x08000000)
-        narrow_axi.o_MAP(spm.i_INPUT(), name='spm', base=0x10000000, size=0x10000000, latency=5)
+        narrow_axi.o_MAP(spm.i_INPUT(), name='spm', base=0x10000000, size=0x10000000, latency=2)
         narrow_axi.o_MAP(dram.i_INPUT(), name='dram', base=0x80000000, size=0x80000000, latency=5)
-        narrow_axi.o_MAP(l2.i_INPUT(), name='l2', base=0x7800_0000, size=0x10_0000, latency=5)
+        narrow_axi.o_MAP(l2.i_INPUT(), name='l2', base=0x7800_0000, size=0x10_0000, latency=3)
         
         # Bind host fetch to router FIXME: cache seems to be always enabled
         self.bind(host, 'fetch', llc, 'input')
