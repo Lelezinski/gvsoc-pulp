@@ -86,7 +86,7 @@ class Cluster(st.Component):
         has_ne16 = False
 
         #ask if needed
-        has_redmule = True
+        has_redmule = False # TODO: quickfix
 
 
         #
