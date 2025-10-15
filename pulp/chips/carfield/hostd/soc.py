@@ -18,6 +18,7 @@ import gvsoc.systree as st
 import memory.memory as memory
 import interco.router as router
 import devices.uart.ns16550 as ns16550
+import devices.can.can as CanController
 import cpu.clint
 import cpu.plic
 import utils.loader.loader
@@ -82,7 +83,7 @@ class Soc(st.Component):
         uart = ns16550.Ns16550(self, 'uart', offset_shift=2)
         clint = cpu.clint.Clint(self, 'clint')
         plic = cpu.plic.Plic(self, 'plic', ndev=1)
-        
+        can = CanController.CanController(self, 'can')
 
         # GPIO
         # TODO: change numbers and connect this
@@ -127,6 +128,7 @@ class Soc(st.Component):
         narrow_axi.o_MAP(uart.i_INPUT(), name='uart', base=0x03002000, size=0x00001000)
         narrow_axi.o_MAP(plic.i_INPUT(), name='plic', base=0x04000000, size=0x08000000)
         narrow_axi.o_MAP(spm.i_INPUT(), name='spm', base=0x10000000, size=0x10000000, latency=2)
+        narrow_axi.o_MAP(can.i_INPUT(), name='can', base=0x20001000, size=0x00001000)
         narrow_axi.o_MAP(dram.i_INPUT(), name='dram', base=0x80000000, size=0x80000000, latency=5)
         narrow_axi.o_MAP(l2.i_INPUT(), name='l2', base=0x7800_0000, size=0x10_0000, latency=3)
         
